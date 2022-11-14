@@ -139,7 +139,7 @@ def avg_pool(x, ksize=2, stride=2, padding='SAME', name='avg_pool'):
 
 
 def resize(x, scale=2, to_shape=None, align_corners=True, dynamic=False,
-           func=tf.image.resize_bilinear, name='resize'):
+           func=tf.compat.v1.image.resize_bilinear, name='resize'):
     if dynamic:
         xs = tf.cast(tf.shape(x), tf.float32)
         new_xs = [tf.cast(xs[1]*scale, tf.int32),

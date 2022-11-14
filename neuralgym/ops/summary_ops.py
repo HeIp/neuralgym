@@ -2,7 +2,7 @@
 import logging
 
 import tensorflow as tf
-from tensorflow.python.framework import ops as _ops
+from tensorflow.python import ops as _ops
 from ..utils.tf_utils import get_sess
 
 

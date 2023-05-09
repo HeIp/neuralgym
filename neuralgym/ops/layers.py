@@ -12,7 +12,7 @@ def get_variable(name, shape, initializer, weight_decay=0.0, dtype='float',
 
     """
     if weight_decay > 0.:
-        regularizer = tf.compat.v1.estimator.layers.l2_regularizer(weight_decay)
+        regularizer = tf.keras.regularizers.L2(weight_decay)
     else:
         regularizer = None
     collections = [tf.GraphKeys.GLOBAL_VARIABLES]

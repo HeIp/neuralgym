@@ -67,7 +67,7 @@ def apply_activation(x, relu, activation_fn, name='activation'):
 
     **Note** activation_fn has higher execution level.
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         if activation_fn is not None:
             return activation_fn(x)
         elif relu:
@@ -98,7 +98,7 @@ def depthwise_conv2d(x, ksize=3, stride=1, decay=0.0, biased=True, relu=False,
     ksize = int2list(ksize)
     stride = int2list(stride)
     filters_in = x.get_shape()[-1]
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         if padding == 'SYMMETRIC' or padding == 'REFELECT':
             x = tf.pad(x, [[0,0], [int((ksize[0]-1)/2), int((ksize[0]-1)/2)], [int((ksize[1]-1)/2), int((ksize[1]-1)/2)], [0,0]], mode=padding)
             padding = 'VALID'
@@ -122,7 +122,7 @@ def max_pool(x, ksize=2, stride=2, padding='SAME', name='max_pool'):
     """
     k = int2list(ksize)
     s = int2list(stride)
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         return tf.nn.max_pool(
             x, [1, k[0], k[1], 1], [1, s[0], s[1], 1], padding)
 
@@ -133,7 +133,7 @@ def avg_pool(x, ksize=2, stride=2, padding='SAME', name='avg_pool'):
     """
     k = int2list(ksize)
     s = int2list(stride)
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         return tf.nn.avg_pool(
             x, [1, k[0], k[1], 1], [1, s[0], s[1], 1], padding)
 
@@ -147,7 +147,7 @@ def resize(x, scale=2, to_shape=None, align_corners=True, dynamic=False,
     else:
         xs = x.get_shape().as_list()
         new_xs = [int(xs[1]*scale), int(xs[2]*scale)]
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         if to_shape is None:
             x = func(x, new_xs, align_corners=align_corners)
         else:
@@ -219,7 +219,7 @@ def transformer(U, theta, out_size=None, name='SpatialTransformer'):
     """
 
     def _repeat(x, n_repeats):
-        with tf.variable_scope('_repeat'):
+        with tf.compat.v1.variable_scope('_repeat'):
             rep = tf.transpose(
                 tf.expand_dims(
                     tf.ones(shape=tf.stack([n_repeats, ])), 1), [1, 0])
@@ -228,7 +228,7 @@ def transformer(U, theta, out_size=None, name='SpatialTransformer'):
             return tf.reshape(x, [-1])
 
     def _interpolate(im, x, y, out_size):
-        with tf.variable_scope('_interpolate'):
+        with tf.compat.v1.variable_scope('_interpolate'):
             # constants
             num_batch = tf.shape(im)[0]
             height = tf.shape(im)[1]
@@ -292,7 +292,7 @@ def transformer(U, theta, out_size=None, name='SpatialTransformer'):
             return output
 
     def _meshgrid(height, width):
-        with tf.variable_scope('_meshgrid'):
+        with tf.compat.v1.variable_scope('_meshgrid'):
             # This should be equivalent to:
             #  x_t, y_t = np.meshgrid(np.linspace(-1, 1, width),
             #                         np.linspace(-1, 1, height))
@@ -313,7 +313,7 @@ def transformer(U, theta, out_size=None, name='SpatialTransformer'):
             return grid
 
     def _transform(theta, input_dim, out_size):
-        with tf.variable_scope('_transform'):
+        with tf.compat.v1.variable_scope('_transform'):
             num_batch = tf.shape(input_dim)[0]
             height = tf.shape(input_dim)[1]
             width = tf.shape(input_dim)[2]
@@ -348,7 +348,7 @@ def transformer(U, theta, out_size=None, name='SpatialTransformer'):
                 tf.stack([num_batch, out_height, out_width, num_channels]))
             return output
 
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         if out_size is None:
             out_size = tf.shape(U)[1:3]
         output = _transform(theta, U, out_size)
@@ -371,7 +371,7 @@ def batch_transformer(U, thetas, out_size, name='BatchSpatialTransformer'):
         [num_batch*num_transforms,out_height,out_width,num_channels]
 
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         num_batch, num_transforms = map(int, thetas.get_shape().as_list()[:2])
         indices = [[i]*num_transforms for i in xrange(num_batch)]
         input_repeated = tf.gather(U, tf.reshape(indices, [-1]))
@@ -431,7 +431,7 @@ def pixel_flow(x, offset, interpolation='bilinear', name='pixel_flow'):
         sampled = tf.reshape(sampled, xs)
         return sampled
 
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         assert x.get_shape().ndims == 4 and offset.get_shape().ndims == 4
 
         l = tf.floor(offset)  # lower
@@ -473,7 +473,7 @@ def concatenated_relu(x, name='concatenated_relu'):
     """Concatenated relu wrapper.
 
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         pos = tf.nn.relu(x)
         neg = tf.nn.relu(-x)
         return tf.concat([pos, neg], -1)
@@ -483,7 +483,7 @@ def scaled_elu(x, name='scaled_elu'):
     """Scaled elu wrapper.
 
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         alpha = 1.6732632423543772848170429916717
         scale = 1.0507009873554804934193349852946
     return scale * tf.where(x >= 0.0, x, alpha * tf.nn.elu(x))
@@ -493,5 +493,5 @@ def flatten(x, name='flatten'):
     """Flatten wrapper.
 
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         return tf.keras.layers.Flatten()(x)

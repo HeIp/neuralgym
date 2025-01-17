@@ -1,11 +1,10 @@
 """ layers """
 import numpy as np
-import tensorflow.compat.v1 as tf
-
+import tensorflow as tf
+from tensorflow.keras import layers
 from tensorflow.python.training.moving_averages import assign_moving_average
 from tensorflow.python.ops import control_flow_ops
 
-tf.disable_v2_behavior()
 
 def get_variable(name, shape, initializer, weight_decay=0.0, dtype='float',
                  trainable=True, freeze_weights=False):
@@ -91,7 +90,7 @@ def moving_average_var(x, decay=0.99, initial_value=0.,
 
 
 def depthwise_conv2d(x, ksize=3, stride=1, decay=0.0, biased=True, relu=False,
-         activation_fn=None, w_init=tf.contrib.layers.xavier_initializer_conv2d(),
+         activation_fn=None, w_init=layers.xavier_initializer_conv2d(),
          padding='SAME', name='depthwise_conv2d'):
     """Simple wrapper for convolution layer.
     Padding can be 'SAME', 'VALID', 'REFLECT', 'SYMMETRIC'

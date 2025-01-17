@@ -1,10 +1,11 @@
 """ layers """
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow.python.training.moving_averages import assign_moving_average
 from tensorflow.python.ops import control_flow_ops
 
+tf.disable_v2_behavior()
 
 def get_variable(name, shape, initializer, weight_decay=0.0, dtype='float',
                  trainable=True, freeze_weights=False):

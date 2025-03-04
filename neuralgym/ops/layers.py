@@ -493,5 +493,5 @@ def flatten(x, name='flatten'):
     """Flatten wrapper.
 
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         return tf.contrib.layers.flatten(x)

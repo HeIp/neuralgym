@@ -1,6 +1,7 @@
 """ layers """
 import numpy as np
 import tensorflow as tf
+
 from tensorflow.keras import layers
 from tensorflow.python.training.moving_averages import assign_moving_average
 from tensorflow.python.ops import control_flow_ops
@@ -12,7 +13,7 @@ def get_variable(name, shape, initializer, weight_decay=0.0, dtype='float',
 
     """
     if weight_decay > 0.:
-        regularizer = tf.contrib.layers.l2_regularizer(weight_decay)
+        regularizer = tf.compat.v1.estimator.layers.l2_regularizer(weight_decay)
     else:
         regularizer = None
     collections = [tf.GraphKeys.GLOBAL_VARIABLES]
@@ -90,7 +91,7 @@ def moving_average_var(x, decay=0.99, initial_value=0.,
 
 
 def depthwise_conv2d(x, ksize=3, stride=1, decay=0.0, biased=True, relu=False,
-         activation_fn=None, w_init=layers.xavier_initializer_conv2d(),
+         activation_fn=None, w_init=tf.compat.v1.estimator.layers.xavier_initializer_conv2d(),
          padding='SAME', name='depthwise_conv2d'):
     """Simple wrapper for convolution layer.
     Padding can be 'SAME', 'VALID', 'REFLECT', 'SYMMETRIC'
@@ -99,7 +100,7 @@ def depthwise_conv2d(x, ksize=3, stride=1, decay=0.0, biased=True, relu=False,
     stride = int2list(stride)
     filters_in = x.get_shape()[-1]
     with tf.variable_scope(name):
-        if padding == 'SYMMETRIC' or padding == 'REFELECT':
+        if padding == 'SYMMETRIC' or padding == 'REFLECT':
             x = tf.pad(x, [[0,0], [int((ksize[0]-1)/2), int((ksize[0]-1)/2)], [int((ksize[1]-1)/2), int((ksize[1]-1)/2)], [0,0]], mode=padding)
             padding = 'VALID'
         weights = get_variable(
@@ -493,5 +494,5 @@ def flatten(x, name='flatten'):
     """Flatten wrapper.
 
     """
-    with tf.variable_scope(name):
-        return tf.contrib.layers.flatten(x)
+    with tf.compat.v1.variable_scope(name):
+        return tf.compat.v1.estimator.layers.flatten(x)

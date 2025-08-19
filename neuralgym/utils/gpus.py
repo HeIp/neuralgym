@@ -1,7 +1,6 @@
 """ gpu related utils """
 import os
 import re
-import logging
 
 
 def set_gpus(gpus):

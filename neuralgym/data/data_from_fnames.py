@@ -122,7 +122,7 @@ class DataFromFNames(Dataset):
         return data
 
     def create_queue(self, shared_name=None, name=None):
-        from tensorflow.python.ops import data_flow_ops, logging_ops, math_ops
+        from tensorflow.python.ops import data_flow_ops
         from tensorflow.python.framework import dtypes
         assert self.dtypes is not None and self.shapes is not None
         assert len(self.dtypes) == len(self.shapes)

@@ -82,10 +82,10 @@ def gan_wgan_loss(pos, neg, name='gan_wgan_loss'):
 
 
 def gan_identity_loss(model, complete_x1, complete_x2, ref, name="gan_identity_loss"):
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         def preprocess_input(x):
             x = tf.clip_by_value((x + 1.) * 127.5, 0, 255)  # Normalize to 0...255
-            x_resize = tf.image.resize_images(x, [224, 224])
+            x_resize = tf.compat.v1.image.resize_images(x, [224, 224])
             vggface_mean = tf.constant([-91.4953, -103.8827, -131.0912])
             x_resize = x_resize[..., ::-1]  # RGB to BGR
             x_preprocessed = x_resize + vggface_mean
@@ -132,7 +132,7 @@ def gradients_penalty(x, y, mask=None, norm=1.):
 
     - https://arxiv.org/abs/1704.00028
     """
-    gradients = tf.gradients(ys=y, xs=x)[0]
+    gradients = tf.compat.v1.gradients(ys=y, xs=x)[0]
     if mask is None:
         mask = tf.ones_like(gradients)
     slopes = tf.sqrt(tf.reduce_sum(input_tensor=tf.square(gradients) * mask, axis=[1, 2, 3]))

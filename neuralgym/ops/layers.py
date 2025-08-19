@@ -2,6 +2,7 @@
 import numpy as np
 import tensorflow as tf
 
+from tensorflow.keras import layers
 from tensorflow.python.training.moving_averages import assign_moving_average
 from tensorflow.python.ops import control_flow_ops
 
@@ -99,7 +100,7 @@ def depthwise_conv2d(x, ksize=3, stride=1, decay=0.0, biased=True, relu=False,
     stride = int2list(stride)
     filters_in = x.get_shape()[-1]
     with tf.compat.v1.variable_scope(name):
-        if padding == 'SYMMETRIC' or padding == 'REFELECT':
+        if padding == 'SYMMETRIC' or padding == 'REFLECT':
             x = tf.pad(x, [[0,0], [int((ksize[0]-1)/2), int((ksize[0]-1)/2)], [int((ksize[1]-1)/2), int((ksize[1]-1)/2)], [0,0]], mode=padding)
             padding = 'VALID'
         weights = get_variable(

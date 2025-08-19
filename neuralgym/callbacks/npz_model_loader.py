@@ -47,7 +47,7 @@ class NPZModelLoader(OnceCallback):
         self._weights = weights
         if self._weights is None:
             self._weights = {}
-            for tf_var in tf.global_variables():
+            for tf_var in tf.compat.v1.global_variables():
                 # we assume name template is variable_scope/conv1/weights:0
                 if tf_var.name.startswith(variable_scope):
                     name = convert_name(tf_var.name)

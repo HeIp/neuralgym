@@ -21,7 +21,7 @@ class DataFromFNames(Dataset):
         fnamelists (list): A list of filenames or tuple of filenames, e.g.
             ['image_001.png', ...] or
             [('pair_image_001_0.png', 'pair_image_001_1.png'), ...].
-        shapes (tuple): Shapes of data, e.g. [256, 256, 3] or
+        shapes (tuple or list): Shapes of data, e.g. [256, 256, 3] or
             [[256, 256, 3], [1]].
         random (bool): Read from `fnamelists` randomly (default to False).
         random_crop (bool): If random crop to the shape from raw image or
@@ -81,12 +81,12 @@ class DataFromFNames(Dataset):
             self.dtypes = [dtypes] * len(self.fnamelists_[0])
         self.return_fnames = return_fnames
         self.batch_phs = [
-            tf.placeholder(dtype, [None] + shape)
+            tf.compat.v1.placeholder(dtype, [None] + shape)
             for dtype, shape in zip(self.dtypes, self.shapes)]
         if self.return_fnames:
             self.shapes += [[]]
             self.dtypes += [tf.string]
-            self.batch_phs.append(tf.placeholder(tf.string, [None]))
+            self.batch_phs.append(tf.compat.v1.placeholder(tf.string, [None]))
         self.enqueue_size = enqueue_size
         self.queue_size = queue_size
         self.nthreads = nthreads
@@ -147,11 +147,15 @@ class DataFromFNames(Dataset):
                 # self._queue.size(), dtypes.float32) * (1. / capacity))
 
     def read_img(self, filename):
-        img = cv2.imread(filename)
+        img = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
         if img is None:
             print('image is None, sleep this thread for 0.1s.')
             time.sleep(0.1)
             return img, True
+        elif img.shape[2] == 4:
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2RGBA)
+        elif img.shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         if self.fn_preprocess:
             img = self.fn_preprocess(img)
         return img, False
@@ -178,7 +182,7 @@ class DataFromFNames(Dataset):
                             img, tuple(self.shapes[i][:-1]),
                             random_h, random_w, align=False)  # use last rand
                     else:
-                        img = cv2.resize(img, tuple(self.shapes[i][:-1][::-1]))
+                        img = cv2.resize(img, tuple(self.shapes[i][:-1][::-1]), interpolation=cv2.INTER_NEAREST)
                     imgs.append(img)
             if self.return_fnames:
                 batch_data.append(imgs + list(filenames))

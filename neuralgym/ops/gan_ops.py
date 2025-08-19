@@ -1,6 +1,13 @@
 import tensorflow as tf
+from keras import backend as K
+from keras import Model
+import numpy as np
+from tensorflow.python.ops.losses.losses_impl import Reduction
+from tensorflow.keras.layers import Conv2D
+
 
 from .summary_ops import scalar_summary
+from ..utils import warning_log
 
 
 def gan_log_loss(pos, neg, name='gan_log_loss'):
@@ -8,20 +15,20 @@ def gan_log_loss(pos, neg, name='gan_log_loss'):
     log loss function for GANs.
     - Generative Adversarial Networks: https://arxiv.org/abs/1406.2661
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         # generative model G
         g_loss = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(
+            input_tensor=tf.nn.sigmoid_cross_entropy_with_logits(
                 logits=neg, labels=tf.ones_like(neg)))
         # discriminative model D
         d_loss_pos = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(
+            input_tensor=tf.nn.sigmoid_cross_entropy_with_logits(
                 logits=pos, labels=tf.ones_like(pos)))
         d_loss_neg = tf.reduce_mean(
-            tf.nn.sigmoid_cross_entropy_with_logits(
+            input_tensor=tf.nn.sigmoid_cross_entropy_with_logits(
                 logits=neg, labels=tf.zeros_like(neg)))
-        pos_acc = tf.reduce_mean(tf.sigmoid(pos))
-        neg_acc = tf.reduce_mean(tf.sigmoid(neg))
+        pos_acc = tf.reduce_mean(input_tensor=tf.sigmoid(pos))
+        neg_acc = tf.reduce_mean(input_tensor=tf.sigmoid(neg))
         scalar_summary('d_scores/pos_mean', pos_acc)
         scalar_summary('d_scores/neg_mean', neg_acc)
         # loss
@@ -35,13 +42,13 @@ def gan_ls_loss(pos, neg, value=1., name='gan_ls_loss'):
     """
     gan with least-square loss
     """
-    with tf.variable_scope(name):
-        l2_pos = tf.reduce_mean(tf.squared_difference(pos, value))
+    with tf.compat.v1.variable_scope(name):
+        l2_pos = tf.reduce_mean(tf.math.squared_difference(pos, value))
         l2_neg = tf.reduce_mean(tf.square(neg))
         scalar_summary('pos_l2_avg', l2_pos)
         scalar_summary('neg_l2_avg', l2_neg)
         d_loss = tf.add(.5 * l2_pos, .5 * l2_neg)
-        g_loss = tf.reduce_mean(tf.squared_difference(neg, value))
+        g_loss = tf.reduce_mean(tf.math.squared_difference(neg, value))
         scalar_summary('d_loss', d_loss)
         scalar_summary('g_loss', g_loss)
     return g_loss, d_loss
@@ -52,13 +59,13 @@ def gan_hinge_loss(pos, neg, value=1., name='gan_hinge_loss'):
     gan with hinge loss:
     https://github.com/pfnet-research/sngan_projection/blob/c26cedf7384c9776bcbe5764cb5ca5376e762007/updater.py
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         hinge_pos = tf.reduce_mean(tf.nn.relu(1-pos))
         hinge_neg = tf.reduce_mean(tf.nn.relu(1+neg))
         scalar_summary('pos_hinge_avg', hinge_pos)
         scalar_summary('neg_hinge_avg', hinge_neg)
         d_loss = tf.add(.5 * hinge_pos, .5 * hinge_neg)
-        g_loss = -tf.reduce_mean(neg)
+        g_loss = -tf.reduce_mean(input_tensor=neg)
         scalar_summary('d_loss', d_loss)
         scalar_summary('g_loss', g_loss)
     return g_loss, d_loss
@@ -70,14 +77,45 @@ def gan_wgan_loss(pos, neg, name='gan_wgan_loss'):
 
     - Wasserstein GAN: https://arxiv.org/abs/1701.07875
     """
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         d_loss = tf.reduce_mean(neg-pos)
         g_loss = -tf.reduce_mean(neg)
         scalar_summary('d_loss', d_loss)
         scalar_summary('g_loss', g_loss)
-        scalar_summary('pos_value_avg', tf.reduce_mean(pos))
-        scalar_summary('neg_value_avg', tf.reduce_mean(neg))
+        scalar_summary('pos_value_avg', tf.reduce_mean(input_tensor=pos))
+        scalar_summary('neg_value_avg', tf.reduce_mean(input_tensor=neg))
     return g_loss, d_loss
+
+
+def gan_identity_loss(model, complete_x1, complete_x2, ref, name="gan_identity_loss"):
+    with tf.variable_scope(name):
+        def preprocess_input(x):
+            x = tf.clip_by_value((x + 1.) * 127.5, 0, 255)  # Normalize to 0...255
+            x_resize = tf.image.resize_images(x, [224, 224])
+            vggface_mean = tf.constant([-91.4953, -103.8827, -131.0912])
+            x_resize = x_resize[..., ::-1]  # RGB to BGR
+            x_preprocessed = x_resize + vggface_mean
+            return x_preprocessed
+
+        complete_x1_preprocessed = preprocess_input(complete_x1)
+        complete_x2_preprocessed = preprocess_input(complete_x2)
+        complete_preprocessed = tf.concat([complete_x1_preprocessed, complete_x2_preprocessed], axis=0)
+        ref_preprocessed = preprocess_input(ref)
+
+        complete_add_16 = model(complete_preprocessed)
+        ref_add_16 = model(ref_preprocessed)
+
+        complete_add_16_x1, complete_add_16_x2 = tf.split(complete_add_16, 2, axis=0)
+        similarity_add_16_x1 = 0.01 * tf.reduce_mean(tf.square(complete_add_16_x1 - ref_add_16))
+        similarity_add_16_x2 = 0.01 * tf.reduce_mean(tf.square(complete_add_16_x2 - ref_add_16))
+
+        identity_loss_x1 = tf.reduce_mean(similarity_add_16_x1)
+        identity_loss_x2 = tf.reduce_mean(similarity_add_16_x2)
+
+        scalar_summary('identity_loss_x1_scalar', identity_loss_x1)
+        scalar_summary('identity_loss_x2_scalar', identity_loss_x2)
+
+    return identity_loss_x1, identity_loss_x2
 
 
 def random_interpolates(x, y, alpha=None, dtype=tf.float32):
@@ -90,7 +128,7 @@ def random_interpolates(x, y, alpha=None, dtype=tf.float32):
     x = tf.reshape(x, [shape[0], -1])
     y = tf.reshape(y, [shape[0], -1])
     if alpha is None:
-        alpha = tf.random_uniform(shape=[shape[0], 1], dtype=dtype)
+        alpha = tf.random.uniform(shape=[shape[0], 1], dtype=dtype)
     interpolates = x + alpha*(y - x)
     return tf.reshape(interpolates, shape)
 
@@ -100,42 +138,42 @@ def gradients_penalty(x, y, mask=None, norm=1.):
 
     - https://arxiv.org/abs/1704.00028
     """
-    gradients = tf.gradients(y, x)[0]
+    gradients = tf.gradients(ys=y, xs=x)[0]
     if mask is None:
         mask = tf.ones_like(gradients)
-    slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients) * mask, axis=[1, 2, 3]))
-    return tf.reduce_mean(tf.square(slopes - norm))
+    slopes = tf.sqrt(tf.reduce_sum(input_tensor=tf.square(gradients) * mask, axis=[1, 2, 3]))
+    return tf.reduce_mean(input_tensor=tf.square(slopes - norm))
 
 
 def kernel_spectral_norm(kernel, iteration=1, name='kernel_sn'):
     # spectral_norm
     def l2_norm(input_x, epsilon=1e-12):
-        input_x_norm = input_x / (tf.reduce_sum(input_x**2)**0.5 + epsilon)
+        input_x_norm = input_x / (tf.reduce_sum(input_tensor=input_x**2)**0.5 + epsilon)
         return input_x_norm
-    with tf.variable_scope(name) as scope:
+    with tf.compat.v1.variable_scope(name) as scope:
         w_shape = kernel.get_shape().as_list()
         w_mat = tf.reshape(kernel, [-1, w_shape[-1]])
-        u = tf.get_variable(
+        u = tf.compat.v1.get_variable(
             'u', shape=[1, w_shape[-1]],
-            initializer=tf.truncated_normal_initializer(),
+            initializer=tf.compat.v1.truncated_normal_initializer(),
             trainable=False)
 
         def power_iteration(u, ite):
-            v_ = tf.matmul(u, tf.transpose(w_mat))
+            v_ = tf.matmul(u, tf.transpose(a=w_mat))
             v_hat = l2_norm(v_)
             u_ = tf.matmul(v_hat, w_mat)
             u_hat = l2_norm(u_)
             return u_hat, v_hat, ite+1
 
         u_hat, v_hat,_ = power_iteration(u, iteration)
-        sigma = tf.matmul(tf.matmul(v_hat, w_mat), tf.transpose(u_hat))
+        sigma = tf.matmul(tf.matmul(v_hat, w_mat), tf.transpose(a=u_hat))
         w_mat = w_mat / sigma
         with tf.control_dependencies([u.assign(u_hat)]):
             w_norm = tf.reshape(w_mat, w_shape)
         return w_norm
 
 
-class Conv2DSepctralNorm(tf.keras.layers.Conv2D):
+class Conv2DSepctralNorm(tf.compat.v1.layers.Conv2D):
     def build(self, input_shape):
         super(Conv2DSepctralNorm, self).build(input_shape)
         self.kernel = kernel_spectral_norm(self.kernel)
@@ -152,7 +190,7 @@ def conv2d_spectral_norm(
         activation=None,
         use_bias=True,
         kernel_initializer=None,
-        bias_initializer=tf.zeros_initializer(),
+        bias_initializer=tf.compat.v1.zeros_initializer(),
         kernel_regularizer=None,
         bias_regularizer=None,
         activity_regularizer=None,

@@ -142,7 +142,7 @@ class ProgressBar(object):
             print(texts)
             self.restart()
         else:
-            # sys.stdout.write(info)
+            sys.stdout.write(info)
             # update time and progress
             self._p_last = self._p_current
             self._t_last = self._t_current

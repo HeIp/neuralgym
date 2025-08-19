@@ -167,9 +167,9 @@ def kernel_spectral_norm(kernel, iteration=1, name='kernel_sn'):
         return w_norm
 
 
-class Conv2DSepctralNorm(tf.compat.v1.layers.Conv2D):
+class Conv2DSpectralNorm(tf.compat.v1.layers.Conv2D):
     def build(self, input_shape):
-        super(Conv2DSepctralNorm, self).build(input_shape)
+        super(Conv2DSpectralNorm, self).build(input_shape)
         self.kernel = kernel_spectral_norm(self.kernel)
 
 
@@ -193,7 +193,7 @@ def conv2d_spectral_norm(
         trainable=True,
         name=None,
         reuse=None):
-    layer = Conv2DSepctralNorm(
+    layer = Conv2DSpectralNorm(
         filters=filters,
         kernel_size=kernel_size,
         strides=strides,

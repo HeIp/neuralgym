@@ -1,4 +1,8 @@
 import os
+import numpy as np
+import tensorflow as tf
+
+from neuralgym.utils.logger import ProgressBar
 
 
 def shuffle_file(filename):
@@ -34,9 +38,6 @@ def compute_mean(sess, images, steps):
     """Compute channel-wise mean of dataset.
 
     """
-    import numpy as np
-    import tensorflow as tf
-    from neuralgym.utils.logger import ProgressBar
     bar = ProgressBar()
     mean_list = []
     for i in range(steps):

@@ -1,6 +1,11 @@
 import tensorflow as tf
+from keras import backend as K
+from keras import Model
+import numpy as np
+from tensorflow.python.ops.losses.losses_impl import Reduction
 
 from .summary_ops import scalar_summary
+from ..utils import warning_log
 
 
 def gan_log_loss(pos, neg, name='gan_log_loss'):
@@ -78,6 +83,37 @@ def gan_wgan_loss(pos, neg, name='gan_wgan_loss'):
         scalar_summary('pos_value_avg', tf.reduce_mean(pos))
         scalar_summary('neg_value_avg', tf.reduce_mean(neg))
     return g_loss, d_loss
+
+
+def gan_identity_loss(model, complete_x1, complete_x2, ref, name="gan_identity_loss"):
+    with tf.variable_scope(name):
+        def preprocess_input(x):
+            x = tf.clip_by_value((x + 1.) * 127.5, 0, 255)  # Normalize to 0...255
+            x_resize = tf.image.resize_images(x, [224, 224])
+            vggface_mean = tf.constant([-91.4953, -103.8827, -131.0912])
+            x_resize = x_resize[..., ::-1]  # RGB to BGR
+            x_preprocessed = x_resize + vggface_mean
+            return x_preprocessed
+
+        complete_x1_preprocessed = preprocess_input(complete_x1)
+        complete_x2_preprocessed = preprocess_input(complete_x2)
+        complete_preprocessed = tf.concat([complete_x1_preprocessed, complete_x2_preprocessed], axis=0)
+        ref_preprocessed = preprocess_input(ref)
+
+        complete_add_16 = model(complete_preprocessed)
+        ref_add_16 = model(ref_preprocessed)
+
+        complete_add_16_x1, complete_add_16_x2 = tf.split(complete_add_16, 2, axis=0)
+        similarity_add_16_x1 = 0.01 * tf.reduce_mean(tf.square(complete_add_16_x1 - ref_add_16))
+        similarity_add_16_x2 = 0.01 * tf.reduce_mean(tf.square(complete_add_16_x2 - ref_add_16))
+
+        identity_loss_x1 = tf.reduce_mean(similarity_add_16_x1)
+        identity_loss_x2 = tf.reduce_mean(similarity_add_16_x2)
+
+        scalar_summary('identity_loss_x1_scalar', identity_loss_x1)
+        scalar_summary('identity_loss_x2_scalar', identity_loss_x2)
+
+    return identity_loss_x1, identity_loss_x2
 
 
 def random_interpolates(x, y, alpha=None, dtype=tf.float32):

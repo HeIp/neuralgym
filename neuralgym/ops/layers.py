@@ -1,10 +1,7 @@
 """ layers """
 import numpy as np
 import tensorflow as tf
-
-from tensorflow.keras import layers
 from tensorflow.python.training.moving_averages import assign_moving_average
-from tensorflow.python.ops import control_flow_ops
 
 
 def get_variable(name, shape, initializer, weight_decay=0.0, dtype='float',

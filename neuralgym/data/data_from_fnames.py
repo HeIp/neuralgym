@@ -1,6 +1,5 @@
 import random
 import threading
-import logging
 import time
 
 import cv2

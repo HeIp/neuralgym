@@ -1,13 +1,7 @@
 import tensorflow as tf
-from keras import backend as K
-from keras import Model
-import numpy as np
-from tensorflow.python.ops.losses.losses_impl import Reduction
-from tensorflow.keras.layers import Conv2D
 
 
 from .summary_ops import scalar_summary
-from ..utils import warning_log
 
 
 def gan_log_loss(pos, neg, name='gan_log_loss'):

@@ -85,7 +85,7 @@ class Config(dict):
                 self._cfg_dict = yaml.load(f, Loader)
         # parent of IOError, OSError *and* WindowsError where available
         except EnvironmentError:
-            logger.error('Please check the file with name of "%s"', filename)
+            logging.error('Please check the file with name of "%s"', filename)
         print(' APP CONFIG '.center(80, '-'))
         self.show()
         print(''.center(80, '-'))
